@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueCreds - Certificate Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --dark-border: #334155;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Auth Screen */
+        #auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        #auth-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .auth-container {
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* 3D Cube Logo with Single Character per Face */
+        .cube-container {
+            perspective: 1000px;
+            width: 60px;
+            height: 60px;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate 15s infinite linear;
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0.9;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .cube-face.front {
+            transform: translateZ(30px);
+        }
+        .cube-face.back {
+            transform: rotateY(180deg) translateZ(30px);
+        }
+        .cube-face.right {
+            transform: rotateY(90deg) translateZ(30px);
+        }
+        .cube-face.left {
+            transform: rotateY(-90deg) translateZ(30px);
+        }
+        .cube-face.top {
+            transform: rotateX(90deg) translateZ(30px);
+        }
+        .cube-face.bottom {
+            transform: rotateX(-90deg) translateZ(30px);
+        }
+
+        @keyframes rotate {
+            0% { transform: rotateX(0) rotateY(0); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+
+        .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-header p {
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            padding: 12px 15px;
+            background-color: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--dark-border);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-muted);
+        }
+
+        .auth-toggle a {
+            color: var(--primary);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .auth-toggle a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Main Content */
+        #main-content {
+            display: none;
+        }
+
+        #main-content.visible {
+            display: block;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--dark-card);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--dark-border);
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 80px 0;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 30px;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-title h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .section-title p {
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+        }
+
+        /* Upload Section */
+        .upload {
+            padding: 80px 0;
+            background-color: rgba(15, 23, 42, 0.5);
+        }
+
+        .upload-form {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--dark-border);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+        }
+
+        .upload-area i {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ml-parameters {
+            margin: 30px 0;
+        }
+
+        .ml-parameter {
+            margin-bottom: 20px;
+        }
+
+        .ml-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ml-toggle-btn {
+            background-color: transparent;
+            border: 1px solid var(--dark-border);
+            color: var(--text-light);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ml-toggle-btn.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .ml-input {
+            display: none;
+        }
+
+        .ml-input.visible {
+            display: block;
+        }
+
+        /* SPACING IMPROVEMENTS - Added proper spacing between score and community */
+        .ml-input .score-section {
+            margin-bottom: 30px;
+        }
+
+        .ml-input .community-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--dark-border);
+        }
+
+        .helper-text {
+            background-color: rgba(15, 23, 42, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            border-left: 3px solid var(--primary);
+        }
+
+        .ml-input label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .ml-input select {
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--dark-border);
+            border-radius: 6px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        /* Certificates Section */
+        .certificates {
+            padding: 80px 0;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background-color: transparent;
+            border: 1px solid var(--dark-border);
+            color: var(--text-light);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .certificate-card {
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .certificate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .certificate-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--dark-border);
+        }
+
+        .certificate-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .certificate-body {
+            padding: 20px;
+        }
+
+        .certificate-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .certificate-org {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .certificate-date {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .certificate-score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .score-bar {
+            flex-grow: 1;
+            height: 6px;
+            background-color: var(--dark-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+        }
+
+        .certificate-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        /* Verification Section */
+        .verification {
+            padding: 80px 0;
+            background-color: rgba(15, 23, 42, 0.5);
+        }
+
+        .verification-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        .verification-input {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .verification-input input {
+            flex-grow: 1;
+        }
+
+        .verification-result {
+            display: none;
+            background-color: rgba(15, 23, 42, 0.7);
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .verification-result.visible {
+            display: block;
+        }
+
+        .verification-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-verified {
+            color: var(--success);
+        }
+
+        .status-not-verified {
+            color: var(--danger);
+        }
+
+        .verification-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        /* Success Modal */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .success-modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--dark-card);
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .qr-code {
+            margin: 20px auto;
+            width: 200px;
+            height: 200px;
+        }
+
+        .tx-id {
+            background-color: rgba(15, 23, 42, 0.7);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark-card);
+            padding: 40px 0;
+            border-top: 1px solid var(--dark-border);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+            
+            .hero p {
+                font-size: 18px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .verification-input {
+                flex-direction: column;
+            }
+            
+            .verification-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 30px 20px;
+            }
+            
+            .upload-form {
+                padding: 30px 20px;
+            }
+            
+            .verification-container {
+                padding: 30px 20px;
+            }
+            
+            .modal-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Screen -->
+    <div id="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="cube-container">
+                        <div class="cube">
+                            <div class="cube-face front">T</div>
+                            <div class="cube-face back">C</div>
+                            <div class="cube-face right">r</div>
+                            <div class="cube-face left">e</div>
+                            <div class="cube-face top">d</div>
+                            <div class="cube-face bottom">s</div>
+                        </div>
+                    </div>
+                    <div class="logo-text">TrueCreds</div>
+                </div>
+                <p>Decentralized Credential Management</p>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                    <div class="error-message" id="loginEmailError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                    <div class="error-message" id="loginPasswordError"></div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Sign In</button>
+            </form>
+            
+            <!-- Signup Form -->
+            <form id="signupForm" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="Enter your full name" required>
+                    <div class="error-message" id="signupNameError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email" required>
+                    <div class="error-message" id="signupEmailError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password" required>
+                    <div class="error-message" id="signupPasswordError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                    <div class="error-message" id="confirmPasswordError"></div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="signupBtn">Create Account</button>
+            </form>
+            
+            <div class="auth-toggle">
+                <span id="showSignup">Don't have an account? <a>Sign up</a></span>
+                <span id="showLogin" style="display: none;">Already have an account? <a>Sign in</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+        <!-- Header -->
+        <header>
+            <div class="container header-container">
+                <div class="logo">
+                    <div class="cube-container">
+                        <div class="cube">
+                            <div class="cube-face front">T</div>
+                            <div class="cube-face back">C</div>
+                            <div class="cube-face right">r</div>
+                            <div class="cube-face left">e</div>
+                            <div class="cube-face top">d</div>
+                            <div class="cube-face bottom">s</div>
+                        </div>
+                    </div>
+                    <div class="logo-text">TrueCreds</div>
+                </div>
+                <nav class="nav-links">
+                    <a href="#dashboard" class="active">Dashboard</a>
+                    <a href="#certificates">My Certificates</a>
+                    <a href="#upload">Upload</a>
+                    <a href="#templates">Templates</a>
+                    <a href="#settings">Settings</a>
+                </nav>
+                <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero" id="dashboard">
+            <div class="container">
+                <h1>Secure Your Credentials on the BlockDAG</h1>
+                <p>TrueCreds leverages decentralized technology to issue, verify, and manage your professional credentials with unparalleled security and transparency.</p>
+                <button class="btn btn-primary" id="getStartedBtn">Get Started</button>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Why Choose TrueCreds?</h2>
+                    <p>Our platform combines cutting-edge technology with user-friendly design to revolutionize credential management.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i>📤</i>
+                        </div>
+                        <h3>Easy Upload</h3>
+                        <p>Upload your certificates with our intuitive drag-and-drop interface. Add metadata and ML parameters for enhanced verification.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i>📊</i>
+                        </div>
+                        <h3>Organize & Filter</h3>
+                        <p>Categorize your credentials and filter by type, date, or ML score. Keep your professional portfolio organized and accessible.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i>🔒</i>
+                        </div>
+                        <h3>Share Securely</h3>
+                        <p>Share verifiable credentials with employers and institutions using secure QR codes and transaction IDs.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="upload" id="upload">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Upload New Certificate</h2>
+                    <p>Add your credentials to the BlockDAG with our secure minting process.</p>
+                </div>
+                <form id="certificateForm" class="upload-form">
+                    <div class="upload-area" id="uploadArea">
+                        <i>📄</i>
+                        <p>Drag & drop your certificate file here or click to browse</p>
+                        <input type="file" id="fileInput" style="display: none;">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="certificateName">Certificate Name *</label>
+                            <input type="text" id="certificateName" placeholder="e.g., AWS Solutions Architect" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="issuingOrg">Issuing Organization *</label>
+                            <input type="text" id="issuingOrg" placeholder="e.g., Amazon Web Services" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issueDate">Issue Date *</label>
+                            <input type="date" id="issueDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expiryDate">Expiry Date</label>
+                            <input type="date" id="expiryDate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <select id="category" required>
+                            <option value="">Select a category</option>
+                            <option value="Professional">Professional</option>
+                            <option value="Academic">Academic</option>
+                            <option value="Training">Training</option>
+                            <option value="Awards">Awards</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" rows="3" placeholder="Brief description of the certificate"></textarea>
+                    </div>
+                    
+                    <div class="ml-parameters">
+                        <h3>ML Parameters</h3>
+                        <div class="ml-parameter">
+                            <div class="ml-toggle">
+                                <button type="button" class="ml-toggle-btn" id="btnPeerReviews">Peer Reviews</button>
+                                <span>Add peer review score to enhance credential value</span>
+                            </div>
+                            <div class="ml-input" id="peerReviewsWrap">
+                                <pre class="helper-text">How to Evaluate: Peer Reviews
+This metric measures the level of external validation the certificate required.
+
+Low Score (1-3): You received an automated "100%" on a multiple-choice quiz with no human oversight.
+
+Medium Score (4-7): Your final project was graded by a teaching assistant (TA) or went 
+through a formal peer-review system where other students had to approve your work.
+
+High Score (8-10): Your work was graded directly by a professor or an industry expert, 
+or it was part of a published research paper or a major open-source contribution 
+that was vetted by the community.</pre>
+
+                                <div class="score-section">
+                                    <label for="peerReviewsScore">Select a score (1-10)</label>
+                                    <select id="peerReviewsScore">
+                                        <option value="">Select score</option>
+                                        <option value="1">1 - Poor</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5 - Average</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10 - Excellent</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="community-section">
+                                    <label for="peerReviewsCommunity">Next Community:</label>
+                                    <select id="peerReviewsCommunity">
+                                        <option value="">Select community</option>
+                                        <option value="Academic Research">Academic Research</option>
+                                        <option value="Open Source">Open Source</option>
+                                        <option value="Industry">Industry</option>
+                                        <option value="Government">Government</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ml-parameter">
+                            <div class="ml-toggle">
+                                <button type="button" class="ml-toggle-btn" id="btnProjectComplexity">Project Complexity</button>
+                                <span>Indicate the complexity level of related projects</span>
+                            </div>
+                            <div class="ml-input" id="projectComplexityWrap">
+                                <pre class="helper-text">How to Evaluate: Project Complexity
+This metric measures the effort, depth, and rigor of the certification.
+
+Low Score (1-3): You watched a 2-hour webinar or completed a simple, 
+self-paced "Intro to Gen AI" video series with no final test.
+
+Medium Score (4-7): It was a multi-week course (e.g., from Coursera or a university)
+ that included quizzes, assignments, and a final, auto-graded exam.
+
+High Score (8-10): This was an intensive, multi-month program or a
+university-level course that required you to build and submit a unique capstone project</pre>
+
+                                <div class="score-section">
+                                    <label for="projectComplexityScore">Select a score (1-10)</label>
+                                    <select id="projectComplexityScore">
+                                        <option value="">Select score</option>
+                                        <option value="1">1 - Simple</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5 - Moderate</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10 - Highly Complex</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="community-section">
+                                    <label for="projectComplexityCommunity">Next Community:</label>
+                                    <select id="projectComplexityCommunity">
+                                        <option value="">Select community</option>
+                                        <option value="Academic Research">Academic Research</option>
+                                        <option value="Open Source">Open Source</option>
+                                        <option value="Industry">Industry</option>
+                                        <option value="Government">Government</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Upload & Mint Certificate</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Certificates Section -->
+        <section class="certificates" id="certificates">
+            <div class="container">
+                <div class="section-title">
+                    <h2>My Certificates</h2>
+                    <p>Manage and view all your verified credentials in one place.</p>
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="Professional">Professional</button>
+                    <button class="filter-btn" data-filter="Academic">Academic</button>
+                    <button class="filter-btn" data-filter="Training">Training</button>
+                    <button class="filter-btn" data-filter="Awards">Awards</button>
+                </div>
+                <div class="certificates-grid" id="certificatesContainer">
+                    <!-- Certificate cards will be dynamically loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Verification Section -->
+        <section class="verification" id="verify">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Verify Credential</h2>
+                    <p>Check the authenticity of any TrueCreds certificate using its transaction ID.</p>
+                </div>
+                <div class="verification-container">
+                    <div class="verification-input">
+                        <input type="text" id="txIdInput" placeholder="Enter Kaspa Transaction ID">
+                        <button class="btn btn-primary" id="verifyBtn">Verify</button>
+                    </div>
+                    <div class="verification-result" id="verificationResult">
+                        <!-- Verification results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <div class="container footer-content">
+                <div class="logo">
+                    <div class="cube-container">
+                        <div class="cube">
+                            <div class="cube-face front">T</div>
+                            <div class="cube-face back">C</div>
+                            <div class="cube-face right">r</div>
+                            <div class="cube-face left">e</div>
+                            <div class="cube-face top">d</div>
+                            <div class="cube-face bottom">s</div>
+                        </div>
+                    </div>
+                    <div class="logo-text">TrueCreds</div>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Contact Us</a>
+                </div>
+                <div class="copyright">
+                    &copy; 2023 TrueCreds. All rights reserved.
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Step 1: Calculating Acuity Score (ML Model Engaged)...</div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h2>Credential Minted Successfully!</h2>
+            <p>Your certificate has been securely stored on the KASPA.</p>
+            <p>ML Score:</p>
+            <div class="tx-id" id="successMlScore"></div>
+            <div class="tx-id" id="successTxId"></div>
+            <div class="qr-code" id="successQrCode"></div>
+            <button class="btn btn-primary" id="viewDashboardBtn">View in Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://127.0.0.1:5000';
+
+        // DOM Elements
+        const authScreen = document.getElementById('auth-screen');
+        const mainContent = document.getElementById('main-content');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const showSignup = document.getElementById('showSignup');
+        const showLogin = document.getElementById('showLogin');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const getStartedBtn = document.getElementById('getStartedBtn');
+        const certificateForm = document.getElementById('certificateForm');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const certificatesContainer = document.getElementById('certificatesContainer');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const successModal = document.getElementById('successModal');
+        const successTxId = document.getElementById('successTxId');
+        const successQrCode = document.getElementById('successQrCode');
+        const viewDashboardBtn = document.getElementById('viewDashboardBtn');
+        const txIdInput = document.getElementById('txIdInput');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verificationResult = document.getElementById('verificationResult');
+        const btnPeerReviews = document.getElementById('btnPeerReviews');
+        const peerReviewsWrap = document.getElementById('peerReviewsWrap');
+        const btnProjectComplexity = document.getElementById('btnProjectComplexity');
+        const projectComplexityWrap = document.getElementById('projectComplexityWrap');
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('truecredsLoggedIn') === 'true') {
+                authScreen.classList.add('hidden');
+                mainContent.classList.add('visible');
+                loadCertificates();
+            }
+        });
+
+        // Auth Form Toggle
+        showSignup.addEventListener('click', function() {
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'flex';
+            showSignup.style.display = 'none';
+            showLogin.style.display = 'block';
+        });
+
+        showLogin.addEventListener('click', function() {
+            signupForm.style.display = 'none';
+            loginForm.style.display = 'flex';
+            showLogin.style.display = 'none';
+            showSignup.style.display = 'block';
+        });
+
+        // Login Form Submission
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // Basic validation
+            if (!validateEmail(email)) {
+                showError('loginEmailError', 'Please enter a valid email address');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('loginPasswordError', 'Password must be at least 6 characters');
+                return;
+            }
+            
+            // Clear errors
+            clearErrors();
+            
+            // Show loading state
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing In...';
+            
+            // Make API call for login
+            fetch(`${API_BASE_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('truecredsLoggedIn', 'true');
+                    localStorage.setItem('truecredsUser', JSON.stringify(data.user));
+                    authScreen.classList.add('hidden');
+                    mainContent.classList.add('visible');
+                    loadCertificates();
+                } else {
+                    showError('loginPasswordError', 'Invalid email or password');
+                }
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            })
+            .catch(error => {
+                // Fallback to demo login if API is not available
+                if (email === 'demo@truecreds.com' && password === 'password') {
+                    localStorage.setItem('truecredsLoggedIn', 'true');
+                    localStorage.setItem('truecredsUser', JSON.stringify({
+                        name: 'Demo User',
+                        email: email
+                    }));
+                    authScreen.classList.add('hidden');
+                    mainContent.classList.add('visible');
+                    loadCertificates();
+                } else {
+                    showError('loginPasswordError', 'Login failed. Please try again.');
+                }
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            });
+        });
+
+        // Signup Form Submission
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validation
+            if (name.trim() === '') {
+                showError('signupNameError', 'Please enter your full name');
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showError('signupEmailError', 'Please enter a valid email address');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('signupPasswordError', 'Password must be at least 6 characters');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('confirmPasswordError', 'Passwords do not match');
+                return;
+            }
+            
+            // Clear errors
+            clearErrors();
+            
+            // Show loading state
+            const signupBtn = document.getElementById('signupBtn');
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Creating Account...';
+            
+            // Make API call for signup
+            fetch(`${API_BASE_URL}/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    password: password
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Signup failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('truecredsLoggedIn', 'true');
+                    localStorage.setItem('truecredsUser', JSON.stringify(data.user));
+                    authScreen.classList.add('hidden');
+                    mainContent.classList.add('visible');
+                    loadCertificates();
+                } else {
+                    showError('signupEmailError', data.message || 'Signup failed');
+                }
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            })
+            .catch(error => {
+                // Fallback to demo signup if API is not available
+                if (email !== 'demo@truecreds.com') {
+                    localStorage.setItem('truecredsLoggedIn', 'true');
+                    localStorage.setItem('truecredsUser', JSON.stringify({
+                        name: name,
+                        email: email
+                    }));
+                    authScreen.classList.add('hidden');
+                    mainContent.classList.add('visible');
+                    loadCertificates();
+                } else {
+                    showError('signupEmailError', 'Email already exists');
+                }
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            });
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', function() {
+            localStorage.removeItem('truecredsLoggedIn');
+            localStorage.removeItem('truecredsUser');
+            authScreen.classList.remove('hidden');
+            mainContent.classList.remove('visible');
+        });
+
+        // Get Started Button
+        getStartedBtn.addEventListener('click', function() {
+            document.getElementById('upload').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Upload Area Click
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // File Input Change
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                uploadArea.innerHTML = `<p>Selected file: ${fileInput.files[0].name}</p>`;
+            }
+        });
+
+        // ML Parameter Toggles
+        btnPeerReviews.addEventListener('click', function() {
+            btnPeerReviews.classList.toggle('active');
+            peerReviewsWrap.classList.toggle('visible');
+        });
+
+        btnProjectComplexity.addEventListener('click', function() {
+            btnProjectComplexity.classList.toggle('active');
+            projectComplexityWrap.classList.toggle('visible');
+        });
+
+        // Certificate Form Submission
+        certificateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Form validation
+            const certificateName = document.getElementById('certificateName').value;
+            const issuingOrg = document.getElementById('issuingOrg').value;
+            const issueDate = document.getElementById('issueDate').value;
+            const category = document.getElementById('category').value;
+            const peerReviewsScore = document.getElementById('peerReviewsScore').value;
+            const projectComplexityScore = document.getElementById('projectComplexityScore').value;
+            
+            if (!certificateName || !issuingOrg || !issueDate || !category) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // Show loading overlay
+            loadingOverlay.classList.add('visible');
+            
+            // Simulate step progression
+            setTimeout(() => {
+                loadingText.textContent = 'Step 2: Hashing Data and Generating Immutable CID...';
+            }, 2000);
+            
+            setTimeout(() => {
+                loadingText.textContent = 'Step 3: Anchoring Record to BlockDAG (Kaspa Connection Check)...';
+            }, 4000);
+            
+            // Prepare data for API call
+            const formData = {
+                certificate_name: certificateName,
+                issuing_org: issuingOrg,
+                issue_date: issueDate,
+                expiry_date: document.getElementById('expiryDate').value || null,
+                category: category,
+                description: document.getElementById('description').value || '',
+                ml_features: {}
+            };
+            
+            // Add ML parameters if enabled
+            if (btnPeerReviews.classList.contains('active') && peerReviewsScore) {
+                formData.ml_features.peer_reviews = parseInt(peerReviewsScore);
+            }
+            
+            if (btnProjectComplexity.classList.contains('active') && projectComplexityScore) {
+                formData.ml_features.project_complexity = parseInt(projectComplexityScore);
+            }
+            
+            // Make API call to issue credential
+            fetch(`${API_BASE_URL}/issue_credential`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading overlay
+                loadingOverlay.classList.remove('visible');
+                
+                // Set the ML Score text in the new element
+                const mlScoreElement = document.getElementById('successMlScore');
+                if (mlScoreElement) {
+                    mlScoreElement.textContent = data.ml_score || '85/100';
+                }
+
+                // Set the Kaspa ID text
+                successTxId.textContent = data.kaspa_tx_id || 'kaspa:qzwm87sj8x9s...';
+
+                // Generate QR code - check if QRCode is available
+                if (typeof QRCode !== 'undefined') {
+                    // Clear any existing QR code and ensure the element is ready
+                    successQrCode.innerHTML = ''; 
+                    
+                    try {
+                        // Use the element ID string 'successQrCode' for the constructor
+                        // This is a common requirement for the qrcode.js library.
+                        const qrCode = new QRCode("successQrCode", { 
+                            text: `${window.location.origin}/verify_credential/${data.kaspa_tx_id || 'demo-tx-id'}`,
+                            width: 200,
+                            height: 200,
+                            // Note: Colors are set to black and white for visibility
+                            colorDark: "#000000", 
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                        
+                        // Remove the default styling from the element that makes the QR code blend in.
+                        // We temporarily change the background color of the QR holder element to white/transparent 
+                        // because the library renders black squares.
+                        successQrCode.style.backgroundColor = 'white';
+                        successQrCode.style.padding = '10px';
+                        successQrCode.style.borderRadius = '6px';
+                        
+                    } catch (error) {
+                        console.error('QR Code error:', error);
+                        // Fallback: Create a simple link (Keep your existing fallback in case of errors)
+                        successQrCode.innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <p style="color: var(--text-muted); margin-bottom: 10px;">QR Code unavailable due to library error.</p>
+                                <a href="${window.location.origin}/verify_credential/${data.kaspa_tx_id || 'demo-tx-id'}" 
+                                   target="_blank" 
+                                   style="color: var(--primary); text-decoration: underline;">
+                                   Verify Credential Link
+                                </a>
+                            </div>
+                        `;
+                    }
+                } else {
+                    console.error('QRCode library not loaded');
+                    successQrCode.innerHTML = '<p>QR Code unavailable</p>';
+                }
+                
+                successModal.classList.add('visible');
+                
+                // Reset form
+                certificateForm.reset();
+                fileInput.value = '';
+                uploadArea.innerHTML = `
+                    <i>📄</i>
+                    <p>Drag & drop your certificate file here or click to browse</p>
+                `;
+                peerReviewsWrap.classList.remove('visible');
+                projectComplexityWrap.classList.remove('visible');
+                btnPeerReviews.classList.remove('active');
+                btnProjectComplexity.classList.remove('active');
+            })
+            .catch(error => {
+                // Hide loading overlay
+                loadingOverlay.classList.remove('visible');
+                
+                // Show error
+                alert('Error minting credential: ' + error.message);
+            });
+        });
+
+        // View Dashboard Button
+        viewDashboardBtn.addEventListener('click', function() {
+            successModal.classList.remove('visible');
+            document.getElementById('certificates').scrollIntoView({ behavior: 'smooth' });
+            loadCertificates();
+        });
+
+        // Filter Certificates
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Filter certificates
+                const filter = this.getAttribute('data-filter');
+                filterCertificates(filter);
+            });
+        });
+
+        // Verify Credential
+        verifyBtn.addEventListener('click', function() {
+            const txId = txIdInput.value.trim();
+            
+            if (!txId) {
+                alert('Please enter a transaction ID');
+                return;
+            }
+            
+            // Show loading state
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            
+            // Make API call to verify credential
+            fetch(`${API_BASE_URL}/verify_credential/${txId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Credential not found');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Display verification result
+                displayVerificationResult(data, true);
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            })
+            .catch(error => {
+                // Display error
+                displayVerificationResult({ error: error.message }, false);
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            });
+        });
+
+        // Helper Functions
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function clearErrors() {
+            const errorElements = document.querySelectorAll('.error-message');
+            errorElements.forEach(element => {
+                element.style.display = 'none';
+            });
+        }
+
+        function loadCertificates() {
+            // In a real app, this would fetch from the backend
+            const mockCertificates = [
+                {
+                    id: 1,
+                    name: 'AWS Solutions Architect',
+                    organization: 'Amazon Web Services',
+                    issueDate: '2023-05-15',
+                    expiryDate: '2026-05-15',
+                    category: 'Professional',
+                    description: 'Professional certification for designing distributed systems on AWS',
+                    mlScore: 92,
+                    txId: 'kaspa:qzwm87sj8x9s...'
+                },
+                {
+                    id: 2,
+                    name: 'Blockchain Fundamentals',
+                    organization: 'Coursera',
+                    issueDate: '2023-02-10',
+                    category: 'Training',
+                    description: 'Introduction to blockchain technology and applications',
+                    mlScore: 85,
+                    txId: 'kaspa:qzwm87sj8x9s...'
+                },
+                {
+                    id: 3,
+                    name: 'Employee of the Year',
+                    organization: 'TechCorp Inc.',
+                    issueDate: '2022-12-05',
+                    category: 'Awards',
+                    description: 'Recognition for outstanding performance and contribution',
+                    mlScore: 95,
+                    txId: 'kaspa:qzwm87sj8x9s...'
+                }
+            ];
+            
+            displayCertificates(mockCertificates);
+        }
+
+        function displayCertificates(certificates) {
+            certificatesContainer.innerHTML = '';
+            
+            certificates.forEach(cert => {
+                const card = document.createElement('div');
+                card.className = 'certificate-card';
+                card.setAttribute('data-category', cert.category);
+                
+                const scorePercent = cert.mlScore + '%';
+                
+                card.innerHTML = `
+                    <div class="certificate-header">
+                        <span class="certificate-category">${cert.category}</span>
+                    </div>
+                    <div class="certificate-body">
+                        <h3 class="certificate-title">${cert.name}</h3>
+                        <p class="certificate-org">${cert.organization}</p>
+                        <p class="certificate-date">Issued: ${formatDate(cert.issueDate)}${cert.expiryDate ? `<br>Expires: ${formatDate(cert.expiryDate)}` : ''}</p>
+                        <div class="certificate-score">
+                            <span>ML Score:</span>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: ${scorePercent}"></div>
+                            </div>
+                            <span>${cert.mlScore}/100</span>
+                        </div>
+                        <div class="certificate-actions">
+                            <button class="btn btn-primary btn-sm view-certificate" data-id="${cert.id}">View</button>
+                            <button class="btn btn-secondary btn-sm download-certificate" data-id="${cert.id}">Download</button>
+                        </div>
+                    </div>
+                `;
+                
+                certificatesContainer.appendChild(card);
+            });
+            
+            // Add event listeners to certificate buttons
+            document.querySelectorAll('.view-certificate').forEach(button => {
+                button.addEventListener('click', function() {
+                    const certId = this.getAttribute('data-id');
+                    // In a real app, this would open a detailed view
+                    alert(`Viewing certificate ${certId}`);
+                });
+            });
+            
+            document.querySelectorAll('.download-certificate').forEach(button => {
+                button.addEventListener('click', function() {
+                    const certId = this.getAttribute('data-id');
+                    // In a real app, this would download the certificate
+                    alert(`Downloading certificate ${certId}`);
+                });
+            });
+        }
+
+        function filterCertificates(filter) {
+            const cards = document.querySelectorAll('.certificate-card');
+            
+            cards.forEach(card => {
+                if (filter === 'all' || card.getAttribute('data-category') === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function displayVerificationResult(data, isVerified) {
+            verificationResult.innerHTML = '';
+            
+            if (isVerified) {
+                verificationResult.innerHTML = `
+                    <div class="verification-status status-verified">
+                        <span>✓</span>
+                        <span>Verified</span>
+                    </div>
+                    <div class="verification-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Skill Name</div>
+                            <div class="detail-value">${data.record ? data.record.skill_name : 'AWS Solutions Architect'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Issuing Organization</div>
+                            <div class="detail-value">${data.record ? data.record.issuing_org : 'Amazon Web Services'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Issue Date</div>
+                            <div class="detail-value">${formatDate(data.record ? data.record.issue_date : '2023-05-15')}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">ML Score</div>
+                            <div class="detail-value">
+                                <div class="certificate-score">
+                                    <div class="score-bar">
+                                        <div class="score-fill" style="width: ${data.record ? data.record.ml_score : 92}%"></div>
+                                    </div>
+                                    <span>${data.record ? data.record.ml_score : 92}/100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Certificate Hash</div>
+                            <div class="detail-value">${data.record ? data.record.cert_hash : '0x1a2b3c4d5e6f...'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Kaspa Transaction ID</div>
+                            <div class="detail-value">${data.record ? data.record.kaspa_tx_id : 'kaspa:qzwm87sj8x9s...'}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                verificationResult.innerHTML = `
+                    <div class="verification-status status-not-verified">
+                        <span>✗</span>
+                        <span>Not Verified</span>
+                    </div>
+                    <p>${data.error || 'Credential not found or verification failed'}</p>
+                `;
+            }
+            
+            verificationResult.classList.add('visible');
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+    </script>
+</body>
+</html>
